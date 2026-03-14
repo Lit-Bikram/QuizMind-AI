@@ -1,0 +1,53 @@
+# =========================
+# Node / React
+# =========================
+node_modules/
+dist/
+build/
+ai-mcq-frontend/.gitignore
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+backend/.env
+backend/.env.*
+ai-mcq-frontend/.env
+ai-mcq-frontend/.env.*
+
+# =========================
+# Database / local files
+# =========================
+*.db
+*.sqlite3
+
+# =========================
+# Uploaded / generated files
+# =========================
+uploaded_docs/
+backend/uploaded_docs/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
