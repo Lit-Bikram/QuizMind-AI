@@ -1,5 +1,5 @@
-import faiss
-import numpy as np
+import faiss # type: ignore
+import numpy as np # type: ignore
 
 
 def create_faiss_index(embeddings: np.ndarray):

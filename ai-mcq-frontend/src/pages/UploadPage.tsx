@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import FileUpload from "../components/upload/FileUpload";
 import GenerateQuizForm from "../components/upload/GenerateQuizForm";
-import { uploadAndGenerateMcqs } from "../services/api";
+import { createQuizSession, uploadAndGenerateMcqs } from "../services/api";
 
 function UploadPage() {
   const navigate = useNavigate();
@@ -19,13 +19,19 @@ function UploadPage() {
 
   const handleGenerateQuiz = async (
     file: File,
+    topic: string,
     query: string,
     numberOfQuestions: number
   ) => {
     try {
       setIsLoading(true);
 
-      const response = await uploadAndGenerateMcqs(file, query, numberOfQuestions);
+      const response = await uploadAndGenerateMcqs(
+        file,
+        topic,
+        query,
+        numberOfQuestions
+      );
 
       const questions = response.mcqs ?? [];
 
@@ -34,13 +40,21 @@ function UploadPage() {
         return;
       }
 
+      const sessionResponse = await createQuizSession({
+        query,
+        original_filename: response.original_filename,
+        mcqs: questions,
+      });
+
       toast.success(`Quiz generated successfully with ${questions.length} questions!`);
 
       navigate("/quiz", {
         state: {
-          questions,
+          questions: sessionResponse.mcqs,
           requestedCount: numberOfQuestions,
-          sessionId: null,
+          sessionId: sessionResponse.session_id,
+          topic,
+          query,
         },
       });
     } catch (error: any) {

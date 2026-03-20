@@ -6,8 +6,8 @@ export interface QuizOption {
 }
 
 export interface QuizQuestion {
-  id: string;
-  question_id: string;
+  id?: string;
+  question_id?: string;
   question: string;
   options: QuizOption[];
   correct_answer: string; // backend returns label like "A", "B"
@@ -15,6 +15,7 @@ export interface QuizQuestion {
   explanation?: string;
   confidence_score?: number;
   is_verified?: boolean;
+  verification_notes?: string[];
 }
 
 export interface GenerateQuizResponse {
@@ -23,6 +24,7 @@ export interface GenerateQuizResponse {
   saved_path: string;
   num_pages: number;
   text_length: number;
+  topic?: string;
   query: string;
   chunks_created: number;
   keyphrases: Array<{
@@ -30,6 +32,21 @@ export interface GenerateQuizResponse {
     score: number;
   }>;
   focused_context: string;
+  mcqs: QuizQuestion[];
+}
+
+export interface QuizCreateRequest {
+  query: string;
+  original_filename: string;
+  mcqs: QuizQuestion[];
+}
+
+export interface QuizCreateResponse {
+  message: string;
+  session_id: string;
+  query: string;
+  original_filename: string;
+  total_questions: number;
   mcqs: QuizQuestion[];
 }
 

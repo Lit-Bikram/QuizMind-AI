@@ -10,6 +10,7 @@ VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 
 
 def _build_mcq_prompt(
+    topic: str,
     query: str,
     focused_context: str,
     num_questions: int = 5
@@ -17,7 +18,10 @@ def _build_mcq_prompt(
     return f"""
 Generate exactly {num_questions} high-quality multiple-choice questions (MCQs) based ONLY on the provided document context.
 
-USER QUERY / TOPIC:
+TOPIC FOCUS:
+{topic}
+
+QUESTION INSTRUCTION:
 {query}
 
 DOCUMENT CONTEXT:
@@ -26,21 +30,24 @@ DOCUMENT CONTEXT:
 IMPORTANT RULES:
 1. Questions must be grounded ONLY in the provided context.
 2. Do NOT invent facts that are not explicitly supported by the context.
-3. Each question must have exactly 4 options.
-4. Only one option must be correct.
-5. The correct answer MUST exactly match one of the option labels: A, B, C, or D.
-6. Difficulty MUST be one of: easy, medium, hard.
-7. Include:
+3. Use the TOPIC FOCUS to decide what part of the document the questions should be about.
+4. Use the QUESTION INSTRUCTION to control question style, difficulty, and type (e.g. conceptual, application-based, easy, medium, hard).
+5. If the QUESTION INSTRUCTION requests content not supported by the DOCUMENT CONTEXT, prioritize correctness and grounding over strict instruction compliance.
+6. Each question must have exactly 4 options.
+7. Only one option must be correct.
+8. The correct answer MUST exactly match one of the option labels: A, B, C, or D.
+9. Difficulty MUST be one of: easy, medium, hard.
+10. Include:
    - question
    - options (list of 4 objects with label and text)
    - correct_answer (A/B/C/D)
    - difficulty (easy/medium/hard)
    - explanation
-8. Avoid generic questions about the pipeline or the system.
-9. Focus on the document topic and educational usefulness.
-10. Return ONLY valid JSON.
-11. Do NOT use markdown fences.
-12. Make distractors plausible but clearly incorrect based on the context.
+11. Avoid generic questions about the pipeline or the system.
+12. Focus on the document topic and educational usefulness.
+13. Make distractors plausible but clearly incorrect based on the context.
+14. Return ONLY valid JSON.
+15. Do NOT use markdown fences.
 
 Return JSON in this exact format:
 {{
@@ -238,12 +245,12 @@ def _validate_and_clean_mcqs(
     return cleaned_mcqs
 
 
-def _fallback_mcq(query: str) -> Dict:
+def _fallback_mcq(topic: str) -> Dict:
     """
     Safe fallback if the LLM output is malformed or too weak.
     """
     return {
-        "question": f"What is the main focus of the topic '{query}' in the provided document?",
+        "question": f"What is the main focus of the topic '{topic}' in the provided document?",
         "options": [
             {"label": "A", "text": "It is discussed directly in the retrieved context"},
             {"label": "B", "text": "It is unrelated to the document"},
@@ -258,7 +265,9 @@ def _fallback_mcq(query: str) -> Dict:
         "verification_notes": ["Fallback MCQ used due to invalid or low-quality LLM output."]
     }
 
+
 def generate_mcqs(
+    topic: str,
     query: str,
     focused_context: str,
     num_questions: int = 5
@@ -271,10 +280,15 @@ def generate_mcqs(
     - filtering
     - retry on malformed output
     """
+    # Ask the LLM for a few extra questions so filtering/verification
+    # can still leave us with the requested final count.
+    llm_target = min(num_questions + 3, 25)
+
     prompt = _build_mcq_prompt(
+        topic=topic,
         query=query,
         focused_context=focused_context,
-        num_questions=num_questions
+        num_questions=llm_target
     )
 
     # Try twice max
@@ -317,4 +331,4 @@ def generate_mcqs(
             last_error = e
 
     # If everything fails, return a safe fallback instead of crashing
-    return [_fallback_mcq(query)]
+    return [_fallback_mcq(topic) for _ in range(num_questions)]

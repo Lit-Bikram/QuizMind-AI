@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field # type: ignore
+from pydantic import BaseModel, Field  # type: ignore
 from typing import List
-
 
 
 class MCQOption(BaseModel):
@@ -25,6 +24,7 @@ class MCQGenerationResponse(BaseModel):
     saved_path: str
     num_pages: int
     text_length: int
+    topic: str
     query: str
     chunks_created: int
     keyphrases: list

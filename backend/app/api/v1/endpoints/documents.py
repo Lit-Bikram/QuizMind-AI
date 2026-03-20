@@ -174,6 +174,7 @@ async def upload_and_focus_document(
 @router.post("/upload-and-generate-mcqs", response_model=MCQGenerationResponse)
 async def upload_and_generate_mcqs(
     file: UploadFile = File(...),
+    topic: str = Form(...),
     query: str = Form(...),
     num_questions: int = Form(5)
 ):
@@ -184,10 +185,22 @@ async def upload_and_generate_mcqs(
                 detail="Only PDF files are supported right now."
             )
 
-        if num_questions < 1 or num_questions > 10:
+        if not topic.strip():
             raise HTTPException(
                 status_code=400,
-                detail="num_questions must be between 1 and 10."
+                detail="Topic is required."
+            )
+
+        if not query.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Question instruction is required."
+            )
+
+        if num_questions < 1 or num_questions > 20:
+            raise HTTPException(
+                status_code=400,
+                detail="num_questions must be between 1 and 20."
             )
 
         saved_path = save_uploaded_file(file)
@@ -196,13 +209,17 @@ async def upload_and_generate_mcqs(
         extracted_text = parsed_result["text"]
         num_pages = parsed_result["num_pages"]
 
+        # V1 strategy:
+        # - topic is used for retrieval / focused context
+        # - query is used for MCQ style / difficulty / instruction
         focus_result = run_focused_context_pipeline(
             text=extracted_text,
-            query=query
+            query=topic.strip()
         )
 
         mcqs = generate_mcqs(
-            query=query,
+            topic=topic.strip(),
+            query=query.strip(),
             focused_context=focus_result["focused_context"],
             num_questions=num_questions
         )
@@ -213,7 +230,8 @@ async def upload_and_generate_mcqs(
             "saved_path": saved_path,
             "num_pages": num_pages,
             "text_length": len(extracted_text),
-            "query": query,
+            "topic": topic.strip(),
+            "query": query.strip(),
             "chunks_created": focus_result["chunks_created"],
             "keyphrases": focus_result["keyphrases"],
             "focused_context": focus_result["focused_context"],

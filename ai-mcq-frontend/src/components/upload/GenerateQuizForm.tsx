@@ -3,6 +3,7 @@ import { useState } from "react";
 interface GenerateQuizFormProps {
   onGenerate: (
     file: File,
+    topic: string,
     query: string,
     numberOfQuestions: number
   ) => Promise<void> | void;
@@ -15,6 +16,7 @@ const GenerateQuizForm = ({
   selectedFile,
   isLoading = false,
 }: GenerateQuizFormProps) => {
+  const [topic, setTopic] = useState("");
   const [query, setQuery] = useState("");
   const [numberOfQuestions, setNumberOfQuestions] = useState(5);
 
@@ -26,8 +28,13 @@ const GenerateQuizForm = ({
       return;
     }
 
+    if (!topic.trim()) {
+      alert("Please enter a topic name.");
+      return;
+    }
+
     if (!query.trim()) {
-      alert("Please enter a topic or query.");
+      alert("Please enter a question instruction.");
       return;
     }
 
@@ -36,26 +43,44 @@ const GenerateQuizForm = ({
       return;
     }
 
-    await onGenerate(selectedFile, query.trim(), numberOfQuestions);
+    await onGenerate(
+      selectedFile,
+      topic.trim(),
+      query.trim(),
+      numberOfQuestions
+    );
   };
 
   return (
     <div className="upload-card">
       <h2>Step 2: Configure Quiz</h2>
       <p className="upload-subtext">
-        Choose the topic and how many questions you want in the quiz.
+        Choose the topic focus, question style, and number of questions for the quiz.
       </p>
 
       <form onSubmit={handleSubmit} className="generate-form">
         <div className="form-group">
-          <label htmlFor="query">Topic / Query</label>
+          <label htmlFor="topic">Topic Name</label>
+          <input
+            id="topic"
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. Data Mining"
+          />
+          <small>Used to focus on the relevant content from the PDF</small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="query">Question Instruction / Query</label>
           <input
             id="query"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. What are the key findings of the paper?"
+            placeholder="e.g. Generate medium and hard conceptual + application-based MCQs on clustering and classification"
           />
+          <small>Used to control question type, style, and difficulty</small>
         </div>
 
         <div className="form-group">
