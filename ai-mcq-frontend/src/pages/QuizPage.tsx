@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-
 import QuestionCard from "../components/quiz/QuestionCard";
 import QuizNavigation from "../components/quiz/QuizNavigation";
 import QuizProgress from "../components/quiz/QuizProgress";
@@ -25,16 +24,17 @@ function QuizPage() {
   } = (location.state as QuizLocationState) || {};
 
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Store answers using stable FRONTEND question index (not backend id)
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalQuestions = questions.length;
   const currentQuestion = questions[currentIndex];
 
-  const currentQuestionId = useMemo(() => {
-    if (!currentQuestion) return "";
-    return currentQuestion.id ?? String(currentIndex);
-  }, [currentQuestion, currentIndex]);
+  // Stable frontend key
+  const currentQuestionKey = String(currentIndex);
 
   if (!questions.length || !currentQuestion) {
     return (
@@ -59,9 +59,11 @@ function QuizPage() {
   }
 
   const handleSelectAnswer = (answer: string) => {
+    const questionKey = String(currentIndex);
+
     setUserAnswers((prev) => ({
       ...prev,
-      [currentQuestionId]: answer,
+      [questionKey]: answer,
     }));
   };
 
@@ -79,11 +81,11 @@ function QuizPage() {
 
   const buildFallbackResult = (): QuizResult => {
     const reviews = questions.map((question, index) => {
-      const qid = question.id ?? String(index);
-      const userAnswer = userAnswers[qid] || "Not answered";
+      const questionKey = String(index);
+      const userAnswer = userAnswers[questionKey] || "Not answered";
 
       return {
-        question_id: qid,
+        question_id: question.id ?? question.question_id ?? questionKey,
         question: question.question,
         user_answer: userAnswer,
         correct_answer: question.correct_answer,
@@ -112,19 +114,20 @@ function QuizPage() {
       if (!difficulty_breakdown[level]) return;
 
       difficulty_breakdown[level].total += 1;
+
       if (review.is_correct) {
         difficulty_breakdown[level].correct += 1;
       }
     });
 
-    (Object.keys(difficulty_breakdown) as Array<"easy" | "medium" | "hard">).forEach(
-      (level) => {
-        const bucket = difficulty_breakdown[level];
-        bucket.accuracy = bucket.total
-          ? Math.round((bucket.correct / bucket.total) * 100)
-          : 0;
-      }
-    );
+    (
+      Object.keys(difficulty_breakdown) as Array<"easy" | "medium" | "hard">
+    ).forEach((level) => {
+      const bucket = difficulty_breakdown[level];
+      bucket.accuracy = bucket.total
+        ? Math.round((bucket.correct / bucket.total) * 100)
+        : 0;
+    });
 
     const weakAreas = reviews
       .filter((r) => !r.is_correct)
@@ -145,9 +148,9 @@ function QuizPage() {
   };
 
   const handleSubmit = async () => {
-    const unanswered = questions.some((question, index) => {
-      const qid = question.id ?? String(index);
-      return !userAnswers[qid];
+    const unanswered = questions.some((_, index) => {
+      const questionKey = String(index);
+      return !userAnswers[questionKey];
     });
 
     if (unanswered) {
@@ -160,45 +163,60 @@ function QuizPage() {
 
       if (!sessionId) {
         const fallbackResult = buildFallbackResult();
-
         toast.success("Quiz submitted successfully!");
         navigate("/results", {
-          state: { result: fallbackResult },
+          state: {
+            result: fallbackResult,
+            requestedCount,
+          },
         });
         return;
       }
 
       const answersPayload: Record<string, string> = {};
 
+      // Read answers from stable frontend index
+      // Send using backend question id / question_id
       questions.forEach((question, index) => {
-        const qid = question.id ?? String(index);
-        answersPayload[qid] = userAnswers[qid];
-      });
+        const questionKey = String(index);
+        const backendQuestionId =
+          question.id ?? question.question_id ?? String(index);
 
+        answersPayload[backendQuestionId] = userAnswers[questionKey];
+      });
+      console.log("Submitting answersPayload:", answersPayload);
+      console.log("Questions being submitted:", questions.map((q, index) => ({
+        index,
+        id: q.id,
+        question_id: q.question_id,
+        question: q.question,
+        correct_answer: q.correct_answer,
+      })));
       const result = await submitQuiz({
         session_id: sessionId,
         answers: answersPayload,
       });
 
       toast.success("Quiz submitted successfully!");
-
       navigate("/results", {
-        state: { result },
+        state: {
+          result,
+          requestedCount,
+        },
       });
     } catch (error: any) {
       console.error("Error submitting quiz:", error);
-
       toast.error(
         error?.response?.data?.detail ||
           error?.response?.data?.message ||
-          "Failed to submit quiz. Please try again."
+          "Failed to submit quiz. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const currentSelectedAnswer = userAnswers[currentQuestionId] || "";
+  const currentSelectedAnswer = userAnswers[currentQuestionKey] || "";
   const isCurrentAnswered = !!currentSelectedAnswer;
 
   return (
@@ -211,8 +229,8 @@ function QuizPage() {
             fontSize: "0.95rem",
           }}
         >
-          Requested {requestedCount} questions, but only {totalQuestions} high-quality
-          questions were generated.
+          Requested {requestedCount} questions, but only {totalQuestions}{" "}
+          high-quality questions were generated.
         </p>
       )}
 

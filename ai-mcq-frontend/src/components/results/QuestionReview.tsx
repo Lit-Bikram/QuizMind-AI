@@ -23,7 +23,7 @@ const QuestionReview = ({ questionReviews }: QuestionReviewProps) => {
               </div>
 
               <div className="review-answer">
-                <strong>Your Answer:</strong> {review.user_answer}
+                <strong>Your Answer:</strong> {review.user_answer || "Not answered"}
               </div>
 
               <div className="review-answer">

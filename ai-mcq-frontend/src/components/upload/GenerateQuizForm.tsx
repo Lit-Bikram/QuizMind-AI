@@ -2,7 +2,7 @@ import { useState } from "react";
 
 interface GenerateQuizFormProps {
   onGenerate: (
-    file: File,
+    file: File | null,
     topic: string,
     query: string,
     numberOfQuestions: number
@@ -22,11 +22,6 @@ const GenerateQuizForm = ({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!selectedFile) {
-      alert("Please upload a PDF first.");
-      return;
-    }
 
     if (!topic.trim()) {
       alert("Please enter a topic name.");
@@ -58,6 +53,12 @@ const GenerateQuizForm = ({
         Choose the topic focus, question style, and number of questions for the quiz.
       </p>
 
+      {!selectedFile && (
+        <div className="upload-subtext" style={{ marginBottom: "1rem" }}>
+          No PDF uploaded — QuizMind AI will generate topic-based study content automatically.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="generate-form">
         <div className="form-group">
           <label htmlFor="topic">Topic Name</label>
@@ -68,7 +69,9 @@ const GenerateQuizForm = ({
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g. Data Mining"
           />
-          <small>Used to focus on the relevant content from the PDF</small>
+          <small>
+            Used to focus the content source (PDF if uploaded, otherwise AI-generated study content)
+          </small>
         </div>
 
         <div className="form-group">

@@ -26,6 +26,7 @@ class MCQGenerationResponse(BaseModel):
     text_length: int
     topic: str
     query: str
+    content_source: str
     chunks_created: int
     keyphrases: list
     focused_context: str

@@ -1,4 +1,5 @@
 export type DifficultyLevel = "easy" | "medium" | "hard" | string;
+export type ContentSource = "pdf" | "topic_generated";
 
 export interface QuizOption {
   label: string;
@@ -24,8 +25,9 @@ export interface GenerateQuizResponse {
   saved_path: string;
   num_pages: number;
   text_length: number;
-  topic?: string;
+  topic: string;
   query: string;
+  content_source: ContentSource;
   chunks_created: number;
   keyphrases: Array<{
     keyword: string;
@@ -35,13 +37,13 @@ export interface GenerateQuizResponse {
   mcqs: QuizQuestion[];
 }
 
-export interface QuizCreateRequest {
+export interface CreateQuizSessionRequest {
   query: string;
   original_filename: string;
   mcqs: QuizQuestion[];
 }
 
-export interface QuizCreateResponse {
+export interface CreateQuizSessionResponse {
   message: string;
   session_id: string;
   query: string;
@@ -84,3 +86,5 @@ export interface QuizResult {
   question_reviews: QuestionReview[];
   weak_areas: string[];
 }
+
+export type UserAnswers = Record<string, string>;

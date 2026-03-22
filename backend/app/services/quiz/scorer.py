@@ -15,7 +15,7 @@ def score_quiz(mcqs: List[Dict], user_answers: Dict[str, str]) -> Dict[str, Any]
     question_reviews = []
     weak_areas = []
 
-    for idx, mcq in enumerate(mcqs, start=1):
+    for idx, mcq in enumerate(mcqs):
         qid = str(idx)
 
         correct_answer = mcq.get("correct_answer", "").strip().upper()

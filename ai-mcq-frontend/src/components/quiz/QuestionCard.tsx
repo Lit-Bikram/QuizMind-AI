@@ -24,21 +24,25 @@ const QuestionCard = ({
       <h2 className="question-text">{question.question}</h2>
 
       <div className="options-list">
-        {question.options.map((option) => {
-          const optionLabel = typeof option === "string" ? "" : option.label;
-          const optionText = typeof option === "string" ? option : option.text;
-          const optionValue = optionLabel || optionText;
+        {question.options.map((option, index) => {
+          const optionText = option.text;
+
+          // Always derive labels from displayed order
+          const optionLabel = String.fromCharCode(65 + index); // A, B, C, D
+
+          // Backend expects labels
+          const optionValue = optionLabel;
 
           const isSelected = selectedAnswer === optionValue;
 
           return (
             <button
-              key={optionValue}
+              key={`${optionLabel}-${optionText}`}
               type="button"
               className={`option-btn ${isSelected ? "selected" : ""}`}
               onClick={() => onSelectAnswer(optionValue)}
             >
-              {optionLabel && <span className="option-label">{optionLabel}.</span>}
+              <span className="option-label">{optionLabel}.</span>
               <span>{optionText}</span>
             </button>
           );

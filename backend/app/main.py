@@ -1,6 +1,13 @@
 from fastapi import FastAPI #type: ignore
 from app.api.router import api_router
 from fastapi.middleware.cors import CORSMiddleware #type: ignore
+import os
+from dotenv import load_dotenv #type: ignore
+
+
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 app = FastAPI(
     title="AI Quiz Generator Backend",
@@ -10,10 +17,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

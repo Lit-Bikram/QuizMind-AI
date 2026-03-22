@@ -8,6 +8,7 @@ from app.services.rag.rag_pipeline import (
 )
 from app.services.mcq.generator import generate_mcqs
 from app.schemas.mcq import MCQGenerationResponse
+from app.services.content.topic_content_generator import generate_topic_study_content
 
 router = APIRouter()
 
@@ -173,25 +174,27 @@ async def upload_and_focus_document(
 
 @router.post("/upload-and-generate-mcqs", response_model=MCQGenerationResponse)
 async def upload_and_generate_mcqs(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
     topic: str = Form(...),
     query: str = Form(...),
     num_questions: int = Form(5)
 ):
+    """
+    Generate MCQs from either:
+    1) an uploaded PDF (PDF mode), or
+    2) LLM-generated topic study content when no PDF is provided (topic-only mode).
+    """
     try:
-        if not file.filename.lower().endswith(".pdf"):
-            raise HTTPException(
-                status_code=400,
-                detail="Only PDF files are supported right now."
-            )
+        topic = topic.strip()
+        query = query.strip()
 
-        if not topic.strip():
+        if not topic:
             raise HTTPException(
                 status_code=400,
                 detail="Topic is required."
             )
 
-        if not query.strip():
+        if not query:
             raise HTTPException(
                 status_code=400,
                 detail="Question instruction is required."
@@ -203,35 +206,72 @@ async def upload_and_generate_mcqs(
                 detail="num_questions must be between 1 and 20."
             )
 
-        saved_path = save_uploaded_file(file)
-        parsed_result = parse_uploaded_file(saved_path)
+        # --------------------------------
+        # MODE 1: PDF-backed generation
+        # --------------------------------
+        if file is not None:
+            if not file.filename or not file.filename.lower().endswith(".pdf"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only PDF files are supported right now."
+                )
 
-        extracted_text = parsed_result["text"]
-        num_pages = parsed_result["num_pages"]
+            saved_path = save_uploaded_file(file)
+            parsed_result = parse_uploaded_file(saved_path)
 
-        # V1 strategy:
+            extracted_text = parsed_result["text"]
+            num_pages = parsed_result["num_pages"]
+
+            if not extracted_text or not extracted_text.strip():
+                raise HTTPException(
+                    status_code=400,
+                    detail="No readable text found in the uploaded PDF."
+                )
+
+            original_filename = file.filename
+            content_source = "pdf"
+
+        # ----------------------------------------
+        # MODE 2: Topic-only synthetic source text
+        # ----------------------------------------
+        else:
+            extracted_text = generate_topic_study_content(topic)
+
+            if not extracted_text or not extracted_text.strip():
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to generate topic study content."
+                )
+
+            original_filename = "topic-only-generated-content.txt"
+            saved_path = "generated://topic-content"
+            num_pages = 0
+            content_source = "topic_generated"
+
+        # Shared downstream pipeline:
         # - topic is used for retrieval / focused context
         # - query is used for MCQ style / difficulty / instruction
         focus_result = run_focused_context_pipeline(
             text=extracted_text,
-            query=topic.strip()
+            query=topic
         )
 
         mcqs = generate_mcqs(
-            topic=topic.strip(),
-            query=query.strip(),
+            topic=topic,
+            query=query,
             focused_context=focus_result["focused_context"],
             num_questions=num_questions
         )
 
         return {
-            "message": "File uploaded, parsed, focused, and MCQs generated successfully",
-            "original_filename": file.filename,
+            "message": "MCQs generated successfully",
+            "original_filename": original_filename,
             "saved_path": saved_path,
             "num_pages": num_pages,
             "text_length": len(extracted_text),
-            "topic": topic.strip(),
-            "query": query.strip(),
+            "topic": topic,
+            "query": query,
+            "content_source": content_source,
             "chunks_created": focus_result["chunks_created"],
             "keyphrases": focus_result["keyphrases"],
             "focused_context": focus_result["focused_context"],
