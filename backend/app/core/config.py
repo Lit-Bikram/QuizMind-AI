@@ -1,17 +1,20 @@
 from urllib.parse import quote_plus
-from pydantic_settings import BaseSettings, SettingsConfigDict # type: ignore
+from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore
 
 
 class Settings(BaseSettings):
     app_name: str = "AI Quiz Generator Backend"
     app_version: str = "1.0.0"
-    debug: bool = True
+    debug: bool = False
 
     postgres_user: str
     postgres_password: str
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str
+
+    frontend_url: str | None = None
+    GROQ_API_KEY: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -26,9 +29,8 @@ class Settings(BaseSettings):
             f"postgresql+psycopg2://{self.postgres_user}:"
             f"{encoded_password}@{self.postgres_host}:"
             f"{self.postgres_port}/{self.postgres_db}"
+            f"?sslmode=require"
         )
-        
-    GROQ_API_KEY: str | None = None
 
 
 settings = Settings()

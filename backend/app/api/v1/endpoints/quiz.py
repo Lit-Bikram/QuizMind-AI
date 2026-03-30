@@ -10,8 +10,7 @@ from app.services.quiz.session_store import create_quiz_session, get_quiz_sessio
 from app.services.quiz.scorer import score_quiz
 
 
-router = APIRouter(prefix="/quiz", tags=["Quiz"])
-
+router = APIRouter()
 
 @router.post("/create", response_model=QuizCreateResponse)
 def create_quiz(request: QuizCreateRequest):
