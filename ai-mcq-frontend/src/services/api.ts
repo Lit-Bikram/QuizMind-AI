@@ -46,7 +46,7 @@ export const createQuizSession = async (
   payload: CreateQuizSessionRequest
 ): Promise<CreateQuizSessionResponse> => {
   const response = await api.post<CreateQuizSessionResponse>(
-    "/api/v1/quiz/quiz/create",
+    "/api/v1/quiz/create",
     payload
   );
 
@@ -56,7 +56,10 @@ export const createQuizSession = async (
 export const submitQuiz = async (
   payload: SubmitQuizRequest
 ): Promise<QuizResult> => {
-  const response = await api.post<QuizResult>("/api/v1/quiz/quiz/submit", payload);
+  const response = await api.post<QuizResult>(
+    "/api/v1/quiz/submit",
+    payload
+  );
 
   return response.data;
 };

@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - ./.env
     volumes:
       - ./backend:/app
     extra_hosts:
@@ -23,7 +23,7 @@ services:
     ports:
       - "5173:5173"
     env_file:
-      - ./ai-mcq-frontend/.env
+      - ./.env
     volumes:
       - ./ai-mcq-frontend:/app
       - /app/node_modules
